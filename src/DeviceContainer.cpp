@@ -5,25 +5,34 @@
 DeviceContainer::DeviceContainer(size_t maxBufferSize = 10) : m_maxNumberOfPacketsInBuffer(maxBufferSize), m_numberOfPacketsInBuffer(0)
 {
 
-	this->m_device->addCallbackHandler(this);
+	//this->m_device->addCallbackHandler(this);
 
 }
 DeviceContainer::DeviceContainer(XsDevice* device, const XsPortInfo* portInfo, size_t maxBufferSize = 10) : m_maxNumberOfPacketsInBuffer(maxBufferSize), m_numberOfPacketsInBuffer(0) {
 	this->m_device = device;
 	this->m_portInfo = portInfo;
-	this->m_device->addCallbackHandler(this);
 	
+	/*XsDeviceCallbackHandler m_CallBackHandler(5);
+	this->m_device->addCallbackHandler(&m_CallBackHandler);*/
 	this->configure();
+	
 
 	std::cout << "Device:" + this->m_device->deviceId().toString().toStdString() + " is successfully configured." << std::endl;
 
 }
+void DeviceContainer::addCallback()
+{
+	XsDeviceCallbackHandler* tmp=new XsDeviceCallbackHandler(5);
+	m_CallBackHandler = tmp;
+	m_device->addCallbackHandler(tmp);
+}
 XsDataPacket DeviceContainer::popOldestPacket() {
-	XsMutexLocker lock(m_mutex);
+	/*XsMutexLocker lock(m_mutex);
 	XsDataPacket oldestPacket(m_packetBuffer.front()); 
 	m_packetBuffer.pop_front(); 
 	--m_numberOfPacketsInBuffer; 
-	return oldestPacket; 
+	return oldestPacket; */
+	return m_CallBackHandler->popOldestPacket();
 }
 
 bool DeviceContainer::configure()
@@ -91,11 +100,21 @@ bool DeviceContainer::gotoMeasurement()
 	}
 	return true;
 }
-
+bool DeviceContainer::packetAvailable() const
+{
+	
+		//XsMutexLocker lock(m_mutex);
+		return m_CallBackHandler->numberOfPacketsInBuffer()>0;
+	
+}
+void DeviceContainer::operator()()
+{
+	std::cout << "from thread" << std::endl;
+}
 DeviceContainer::~DeviceContainer()
 {
 }
-void DeviceContainer::onLiveDataAvailable(XsDevice*, const XsDataPacket* packet) {
+ /*void DeviceContainer::onLiveDataAvailable(XsDevice*, const XsDataPacket* packet) {
 	XsMutexLocker lock(m_mutex);
 	assert(packet != 0);
 	while (m_numberOfPacketsInBuffer >= m_maxNumberOfPacketsInBuffer)
@@ -105,4 +124,4 @@ void DeviceContainer::onLiveDataAvailable(XsDevice*, const XsDataPacket* packet)
 	m_packetBuffer.push_back(*packet);
 	++m_numberOfPacketsInBuffer;
 	assert(m_numberOfPacketsInBuffer <= m_maxNumberOfPacketsInBuffer);
-}
+}*/
